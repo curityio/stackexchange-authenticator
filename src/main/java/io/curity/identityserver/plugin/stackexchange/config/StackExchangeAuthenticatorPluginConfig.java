@@ -18,11 +18,9 @@ package io.curity.identityserver.plugin.stackexchange.config;
 
 import se.curity.identityserver.sdk.config.Configuration;
 import se.curity.identityserver.sdk.config.annotation.DefaultString;
-import se.curity.identityserver.sdk.config.annotation.DefaultURI;
 import se.curity.identityserver.sdk.config.annotation.Description;
 import se.curity.identityserver.sdk.service.SessionManager;
-
-import java.net.URI;
+import se.curity.identityserver.sdk.service.WebServiceClient;
 
 @SuppressWarnings("InterfaceNeverImplemented")
 public interface StackExchangeAuthenticatorPluginConfig extends Configuration {
@@ -33,19 +31,9 @@ public interface StackExchangeAuthenticatorPluginConfig extends Configuration {
     String getClientSecret();
 
     @Description("StackExchange App Key")
-    String getKey();
+    String getAppKey();
 
-    @Description("URL to the StackExchange authorization endpoint")
-    @DefaultURI("https://stackexchange.com/oauth")
-    URI getAuthorizationEndpoint();
-
-    @Description("URL to the StackExchange token endpoint")
-    @DefaultURI("https://stackexchange.com/oauth/access_token")
-    URI getTokenEndpoint();
-
-    @Description("URL to StackExchange user info endpoint")
-    @DefaultURI("https://api.stackexchange.com/2.2/me")
-    URI getUserInfoEndpoint();
+    WebServiceClient getWebServiceClient();
 
     @Description("A space-separated list of scopes to request from StackExchange")
     @DefaultString("")
@@ -53,4 +41,6 @@ public interface StackExchangeAuthenticatorPluginConfig extends Configuration {
 
     SessionManager getSessionManager();
 
+    @DefaultString("stackoverflow")
+    String getSite();
 }

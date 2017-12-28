@@ -16,142 +16,251 @@
 
 package io.curity.identityserver.plugin.stackexchange.authentication;
 
-import com.google.common.collect.ImmutableMap;
-import io.curity.identityserver.plugin.authentication.DefaultOAuthClient;
-import io.curity.identityserver.plugin.authentication.OAuthClient;
 import io.curity.identityserver.plugin.stackexchange.config.StackExchangeAuthenticatorPluginConfig;
-import org.apache.http.HttpResponse;
-import org.apache.http.HttpStatus;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.utils.URIBuilder;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import se.curity.identityserver.sdk.Nullable;
 import se.curity.identityserver.sdk.attribute.Attribute;
-import se.curity.identityserver.sdk.attribute.Attributes;
 import se.curity.identityserver.sdk.attribute.AuthenticationAttributes;
 import se.curity.identityserver.sdk.attribute.ContextAttributes;
 import se.curity.identityserver.sdk.attribute.SubjectAttributes;
+import se.curity.identityserver.sdk.attribute.scim.v2.Address;
+import se.curity.identityserver.sdk.attribute.scim.v2.Name;
+import se.curity.identityserver.sdk.attribute.scim.v2.multivalued.Photo;
 import se.curity.identityserver.sdk.authentication.AuthenticationResult;
 import se.curity.identityserver.sdk.authentication.AuthenticatorRequestHandler;
 import se.curity.identityserver.sdk.errors.ErrorCode;
+import se.curity.identityserver.sdk.http.HttpResponse;
 import se.curity.identityserver.sdk.service.ExceptionFactory;
 import se.curity.identityserver.sdk.service.Json;
 import se.curity.identityserver.sdk.service.authentication.AuthenticatorInformationProvider;
 import se.curity.identityserver.sdk.web.Request;
 import se.curity.identityserver.sdk.web.Response;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
-import static io.curity.identityserver.plugin.authentication.Constants.Params.PARAM_ACCESS_TOKEN;
+import static se.curity.identityserver.sdk.http.HttpRequest.createFormUrlEncodedBodyProcessor;
 
 public class CallbackRequestHandler
-        implements AuthenticatorRequestHandler<CallbackGetRequestModel> {
-
+        implements AuthenticatorRequestHandler<CallbackGetRequestModel>
+{
     private static final Logger _logger = LoggerFactory.getLogger(CallbackRequestHandler.class);
 
     private final ExceptionFactory _exceptionFactory;
-    private final OAuthClient _oauthClient;
     private final StackExchangeAuthenticatorPluginConfig _config;
-    private final HttpClient _client;
+    private final AuthenticatorInformationProvider _authenticatorInformationProvider;
+    private final Json _json;
 
     public CallbackRequestHandler(ExceptionFactory exceptionFactory,
-                                  AuthenticatorInformationProvider provider,
+                                  AuthenticatorInformationProvider authenticatorInformationProvider,
                                   Json json,
-                                  StackExchangeAuthenticatorPluginConfig config) {
+                                  StackExchangeAuthenticatorPluginConfig config)
+    {
         _exceptionFactory = exceptionFactory;
-        _oauthClient = new DefaultOAuthClient(exceptionFactory, provider, json, config.getSessionManager());
         _config = config;
-        _client = HttpClientBuilder.create().build();
+        _json = json;
+        _authenticatorInformationProvider = authenticatorInformationProvider;
     }
 
     @Override
-    public CallbackGetRequestModel preProcess(Request request, Response response) {
-        if (request.isGetRequest()) {
+    public CallbackGetRequestModel preProcess(Request request, Response response)
+    {
+        if (request.isGetRequest())
+        {
             return new CallbackGetRequestModel(request);
-        } else {
+        }
+        else
+        {
             throw _exceptionFactory.methodNotAllowed();
         }
     }
 
     @Override
     public Optional<AuthenticationResult> get(CallbackGetRequestModel requestModel,
-                                              Response response) {
-        _oauthClient.redirectToAuthenticationOnError(requestModel.getRequest(), _config.id());
+                                              Response response)
+    {
+        validateState(requestModel.getState());
+        handleError(requestModel);
 
-        HttpResponse tokensResponse = _oauthClient.getTokensResponse(_config.getTokenEndpoint().toString(),
-                _config.getClientId(),
-                _config.getClientSecret(),
-                requestModel.getCode(),
-                requestModel.getState());
-        Map<String, String> tokenMap = null;
-        try {
-            tokenMap = DefaultOAuthClient.splitQuery(new URL(_config.getTokenEndpoint() + "?" + EntityUtils.toString(tokensResponse.getEntity())));
-        } catch (IOException e) {
-            e.printStackTrace();
+        Map<String, Object> tokenResponseData = redeemCodeForTokens(requestModel);
+        @Nullable Object accessToken = tokenResponseData.get("access_token");
+        Map<String, String> userInfoResponseData = getUserInfo(accessToken);
+        List<Attribute> subjectAttributes = new LinkedList<>(), contextAttributes = new LinkedList<>();
+        String name = userInfoResponseData.get("display_name");
+
+        subjectAttributes.add(Attribute.of("profileUrl", userInfoResponseData.get("link")));
+        subjectAttributes.add(Attribute.of("subject", userInfoResponseData.get("account_id")));
+        subjectAttributes.add(Attribute.of("address", Address.of(Collections.singletonList(
+                Attribute.of("country", userInfoResponseData.get("location"))))));
+        subjectAttributes.add(Attribute.of("displayName", name));
+        subjectAttributes.add(Attribute.of("name", Name.of(name)));
+        subjectAttributes.add(Attribute.of("photos", Collections.singleton(
+                Photo.of(userInfoResponseData.get("profile_image"), false))));
+        subjectAttributes.add(Attribute.of("stack_exchange_id", userInfoResponseData.get("user_id")));
+        subjectAttributes.add(Attribute.of("website", userInfoResponseData.get("website_url")));
+
+        contextAttributes.add(Attribute.of("stack_exchange_access_token", Objects.toString(accessToken)));
+
+        AuthenticationAttributes authenticationAttributes = AuthenticationAttributes.of(
+                SubjectAttributes.of(subjectAttributes),
+                ContextAttributes.of(contextAttributes));
+
+        return Optional.of(new AuthenticationResult(authenticationAttributes));
+    }
+
+    private Map<String, String> getUserInfo(@Nullable Object accessToken)
+    {
+        if (accessToken == null)
+        {
+            _logger.warn("No access token was available. Cannot get user info.");
+
+            throw _exceptionFactory.internalServerException(ErrorCode.EXTERNAL_SERVICE_ERROR);
         }
 
-        Optional<AuthenticationResult> authenticationResult = getAuthenticationResult(tokenMap.get(PARAM_ACCESS_TOKEN).toString());
+        HttpResponse userInfoResponse = _config.getWebServiceClient()
+                .withHost("api.stackexchange.com")
+                .withPath("/2.2/me")
+                .withQueries(createQueryParameters(accessToken.toString(), _config.getAppKey(), _config.getSite()))
+                .request()
+                .get()
+                .response();
+        int statusCode = userInfoResponse.statusCode();
 
-        return authenticationResult;
+        if (statusCode != 200)
+        {
+            if (_logger.isWarnEnabled())
+            {
+                _logger.warn("Got an error response from the user info endpoint. Error = {}, {}", statusCode,
+                        userInfoResponse.body(HttpResponse.asString()));
+            }
+
+            throw _exceptionFactory.internalServerException(ErrorCode.EXTERNAL_SERVICE_ERROR);
+        }
+
+        Object items = _json.fromJson(userInfoResponse.body(HttpResponse.asString()))
+                .getOrDefault("items", Collections.emptyMap());
+        Map<String, String> result = Collections.emptyMap();
+
+        if (items instanceof List)
+        {
+            List i = (List)items;
+            Object j;
+
+            if (i.size() >= 1 && (j = i.get(0)) instanceof Map)
+            {
+                Map m = (Map)j;
+                result = new LinkedHashMap<>(m.size());
+
+                for (Object k : m.keySet())
+                {
+                    result.put(k.toString(), m.get(k).toString());
+                }
+            }
+        }
+
+        return result;
+    }
+
+    private Map<String, Collection<String>> createQueryParameters(String accessToken, String appKey, String site)
+    {
+        Map<String, Collection<String>> parameters = new LinkedHashMap<>(3);
+
+        parameters.put("key", Collections.singleton(appKey));
+        parameters.put("site", Collections.singleton(site));
+        parameters.put("access_token", Collections.singleton(accessToken));
+
+        return parameters;
+    }
+
+    private Map<String, Object> redeemCodeForTokens(CallbackGetRequestModel requestModel)
+    {
+        HttpResponse tokenResponse = _config.getWebServiceClient()
+                .withHost("stackexchange.com")
+                .withPath("/oauth/access_token/json")
+                .request()
+                .contentType("application/x-www-form-urlencoded")
+                .body(createFormUrlEncodedBodyProcessor(createPostData(_config.getClientId(),
+                        _config.getClientSecret(), requestModel.getCode(), requestModel.getRequestUrl())))
+                .post()
+                .response();
+        int statusCode = tokenResponse.statusCode();
+
+        if (statusCode != 200)
+        {
+            if (_logger.isDebugEnabled())
+            {
+                _logger.info("Got error response from token endpoint: error = {}, {}", statusCode,
+                        tokenResponse.body(HttpResponse.asString()));
+            }
+
+            throw _exceptionFactory.internalServerException(ErrorCode.EXTERNAL_SERVICE_ERROR);
+        }
+
+        return _json.fromJson(tokenResponse.body(HttpResponse.asString()));
+    }
+
+    private void handleError(CallbackGetRequestModel requestModel)
+    {
+        if (!Objects.isNull(requestModel.getError()))
+        {
+
+            if ("access_denied".equals(requestModel.getError()))
+            {
+                _logger.debug("Got an error from StackExchange: {} - {}", requestModel.getError(),
+                        requestModel.getErrorDescription());
+
+                throw _exceptionFactory.redirectException(
+                        _authenticatorInformationProvider.getAuthenticationBaseUri().toASCIIString());
+            }
+
+            _logger.warn("Got an error from StackExchange: {} - {}", requestModel.getError(),
+                    requestModel.getErrorDescription());
+
+            throw _exceptionFactory.externalServiceException("Login with StackExchange failed");
+        }
+    }
+
+    private static Map<String, String> createPostData(String clientId, String clientSecret, String code, String callbackUri)
+    {
+        Map<String, String> data = new HashMap<>(5);
+
+        data.put("client_id", clientId);
+        data.put("client_secret", clientSecret);
+        data.put("code", code);
+        data.put("grant_type", "authorization_code");
+        data.put("redirect_uri", callbackUri);
+
+        return data;
     }
 
     @Override
     public Optional<AuthenticationResult> post(CallbackGetRequestModel requestModel,
-                                               Response response) {
+                                               Response response)
+    {
         throw _exceptionFactory.methodNotAllowed();
     }
 
+    private void validateState(String state)
+    {
+        @Nullable Attribute sessionAttribute = _config.getSessionManager().get("state");
 
-    public Optional<AuthenticationResult> getAuthenticationResult(String accessToken) {
-        try {
-            HttpGet request = new HttpGet(buildUrl(_config.getUserInfoEndpoint().toString(), ImmutableMap.of(PARAM_ACCESS_TOKEN, accessToken, "key", _config.getKey(), "site", "stackoverflow")));
-            HttpResponse response = _client.execute(request);
-            if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK) {
-                _logger.debug("Got error response from user info endpoint {}", response.getStatusLine());
+        if (sessionAttribute != null && state.equals(sessionAttribute.getValueOfType(String.class)))
+        {
+            _logger.debug("State matches session");
+        }
+        else
+        {
+            _logger.debug("State did not match session");
 
-                throw _exceptionFactory.internalServerException(ErrorCode.INVALID_SERVER_STATE, "INTERNAL SERVER ERROR");
-            }
-
-            Map<String, Object> profileData = _oauthClient.parseResponse(response);
-
-            String userId = ((Map) ((ArrayList) profileData.get("items")).get(0)).get("user_id").toString();
-            AuthenticationAttributes attributes = AuthenticationAttributes.of(
-                    SubjectAttributes.of(userId, Attributes.fromMap(profileData)),
-                    ContextAttributes.of(Attributes.of(Attribute.of(PARAM_ACCESS_TOKEN, accessToken))));
-            AuthenticationResult authenticationResult = new AuthenticationResult(attributes);
-
-            return Optional.of(authenticationResult);
-
-        } catch (IOException e) {
-            _logger.warn("Could not communicate with profile endpoint", e);
-
-            throw _exceptionFactory.internalServerException(ErrorCode.EXTERNAL_SERVICE_ERROR, "Authentication failed");
+            throw _exceptionFactory.badRequestException(ErrorCode.INVALID_SERVER_STATE, "Bad state provided");
         }
     }
-
-    public String buildUrl(String endpoint, Map<String, String> extraParams) {
-        URIBuilder builder;
-
-        try {
-            builder = new URIBuilder(endpoint);
-        } catch (URISyntaxException e) {
-            _logger.warn("Bad syntax in redirect url", e);
-            throw _exceptionFactory.configurationException("Bad syntax in redirect url");
-        }
-
-        for (String key : extraParams.keySet()) {
-            builder.addParameter(key, extraParams.get(key));
-        }
-
-        return builder.toString();
-    }
-
 }

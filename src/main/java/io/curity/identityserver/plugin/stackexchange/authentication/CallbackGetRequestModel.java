@@ -16,28 +16,52 @@
 
 package io.curity.identityserver.plugin.stackexchange.authentication;
 
+import se.curity.identityserver.sdk.Nullable;
 import se.curity.identityserver.sdk.web.Request;
 
-public class CallbackGetRequestModel {
-    private String _code;
-    private String _state;
-    private Request _request;
+class CallbackGetRequestModel
+{
+    @Nullable
+    private final String _error;
 
-    public CallbackGetRequestModel(Request request) {
+    @Nullable
+    private final String _errorDescription;
+    
+    private final String _code;
+    private final String _state;
+    private final String _requestUrl;
+
+    CallbackGetRequestModel(Request request)
+    {
         _code = request.getParameterValueOrError("code");
         _state = request.getParameterValueOrError("state");
-        _request = request;
+        _error = request.getParameterValueOrError("error");
+        _errorDescription = request.getParameterValueOrError("error_description");
+        _requestUrl = request.getUrl();
     }
 
-    public String getCode() {
+    public String getCode()
+    {
         return _code;
     }
 
-    public String getState() {
+    public String getState()
+    {
         return _state;
     }
 
-    public Request getRequest() {
-        return _request;
+    public String getRequestUrl()
+    {
+        return _requestUrl;
+    }
+
+    public String getError()
+    {
+        return _error;
+    }
+
+    public String getErrorDescription()
+    {
+        return _errorDescription;
     }
 }
