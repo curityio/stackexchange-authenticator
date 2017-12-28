@@ -95,6 +95,16 @@ public class CallbackRequestHandler
         List<Attribute> subjectAttributes = new LinkedList<>(), contextAttributes = new LinkedList<>();
         String name = userInfoResponseData.get("display_name");
 
+        if (userInfoResponseData.size() == 0)
+        {
+            // User probably doesn't have an account with the configured site.
+            _logger.debug("No user info for access token. Use probably doesn't have an account at {}",
+                    _config.getSite());
+
+            throw _exceptionFactory.redirectException(
+                    _authenticatorInformationProvider.getAuthenticationBaseUri().toASCIIString());
+        }
+
         subjectAttributes.add(Attribute.of("profileUrl", userInfoResponseData.get("link")));
         subjectAttributes.add(Attribute.of("subject", userInfoResponseData.get("account_id")));
         subjectAttributes.add(Attribute.of("country", userInfoResponseData.get("location")));
