@@ -24,7 +24,6 @@ import se.curity.identityserver.sdk.attribute.Attribute;
 import se.curity.identityserver.sdk.attribute.AuthenticationAttributes;
 import se.curity.identityserver.sdk.attribute.ContextAttributes;
 import se.curity.identityserver.sdk.attribute.SubjectAttributes;
-import se.curity.identityserver.sdk.attribute.scim.v2.Address;
 import se.curity.identityserver.sdk.attribute.scim.v2.Name;
 import se.curity.identityserver.sdk.attribute.scim.v2.multivalued.Photo;
 import se.curity.identityserver.sdk.authentication.AuthenticationResult;
@@ -98,12 +97,11 @@ public class CallbackRequestHandler
 
         subjectAttributes.add(Attribute.of("profileUrl", userInfoResponseData.get("link")));
         subjectAttributes.add(Attribute.of("subject", userInfoResponseData.get("account_id")));
-        subjectAttributes.add(Attribute.of("address", Address.of(Collections.singletonList(
-                Attribute.of("country", userInfoResponseData.get("location"))))));
+        subjectAttributes.add(Attribute.of("country", userInfoResponseData.get("location")));
         subjectAttributes.add(Attribute.of("displayName", name));
         subjectAttributes.add(Attribute.of("name", Name.of(name)));
-        subjectAttributes.add(Attribute.of("photos", Collections.singleton(
-                Photo.of(userInfoResponseData.get("profile_image"), false))));
+        subjectAttributes.add(Attribute.of("photo",
+                Photo.of(userInfoResponseData.get("profile_image"), false)));
         subjectAttributes.add(Attribute.of("stack_exchange_id", userInfoResponseData.get("user_id")));
         subjectAttributes.add(Attribute.of("website", userInfoResponseData.get("website_url")));
 
@@ -169,12 +167,13 @@ public class CallbackRequestHandler
         return result;
     }
 
-    private Map<String, Collection<String>> createQueryParameters(String accessToken, String appKey, String site)
+    private Map<String, Collection<String>> createQueryParameters(String accessToken, String appKey,
+                                                                  StackExchangeAuthenticatorPluginConfig.Site site)
     {
         Map<String, Collection<String>> parameters = new LinkedHashMap<>(3);
 
         parameters.put("key", Collections.singleton(appKey));
-        parameters.put("site", Collections.singleton(site));
+        parameters.put("site", Collections.singleton(site.name()));
         parameters.put("access_token", Collections.singleton(accessToken));
 
         return parameters;
