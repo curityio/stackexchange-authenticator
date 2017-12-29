@@ -65,7 +65,7 @@ public class StackExchangeAuthenticatorRequestHandler implements AuthenticatorRe
     {
         _logger.info("GET request received for authentication authentication");
 
-        URL redirectUri = createRedirectUri();
+        String redirectUri = createRedirectUri();
         String state = UUID.randomUUID().toString();
         Map<String, Collection<String>> queryStringArguments = new LinkedHashMap<>(5);
         Set<String> scopes = new LinkedHashSet<>(4);
@@ -93,7 +93,7 @@ public class StackExchangeAuthenticatorRequestHandler implements AuthenticatorRe
         }
 
         addQueryString(queryStringArguments, "client_id", _config.getClientId());
-        addQueryString(queryStringArguments, "redirect_uri", redirectUri.toString());
+        addQueryString(queryStringArguments, "redirect_uri", redirectUri);
         addQueryString(queryStringArguments, "state", state);
         addQueryString(queryStringArguments, "response_type", "code");
         addQueryString(queryStringArguments, "scope", String.join(" ", scopes));
@@ -122,13 +122,13 @@ public class StackExchangeAuthenticatorRequestHandler implements AuthenticatorRe
         queryStringArguments.put(key, Collections.singleton(value.toString()));
     }
 
-    private URL createRedirectUri()
+    private String createRedirectUri()
     {
         try
         {
             URI authUri = _authenticatorInformationProvider.getFullyQualifiedAuthenticationUri();
 
-            return new URL(authUri.toURL(), authUri.getPath() + "/" + CALLBACK);
+            return new URL(authUri.toURL(), authUri.getPath() + "/" + CALLBACK).toString();
         }
         catch (MalformedURLException e)
         {
