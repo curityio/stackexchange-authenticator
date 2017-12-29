@@ -68,11 +68,29 @@ public class StackExchangeAuthenticatorRequestHandler implements AuthenticatorRe
         URL redirectUri = createRedirectUri();
         String state = UUID.randomUUID().toString();
         Map<String, Collection<String>> queryStringArguments = new LinkedHashMap<>(5);
-        Set<String> scopes = new LinkedHashSet<>(); // TODO: Capacity
+        Set<String> scopes = new LinkedHashSet<>(4);
 
         _config.getSessionManager().put(Attribute.of("state", state));
 
-        // TODO: Build scopes from config
+        if (_config.isReadInbox())
+        {
+            scopes.add("read_inbox");
+        }
+
+        if (_config.isNoExpiry())
+        {
+            scopes.add("no_expiry");
+        }
+
+        if (_config.isWriteAccess())
+        {
+            scopes.add("write_access");
+        }
+
+        if (_config.isPrivateInfo())
+        {
+            scopes.add("private_info");
+        }
 
         addQueryString(queryStringArguments, "client_id", _config.getClientId());
         addQueryString(queryStringArguments, "redirect_uri", redirectUri.toString());
