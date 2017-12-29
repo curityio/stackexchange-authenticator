@@ -2,6 +2,3 @@ target/
 .mvn/
 .idea/
 *.iml
-${DIST_DIR}/
-deploy.sh
-.git-old/
