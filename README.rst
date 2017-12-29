@@ -4,7 +4,7 @@ StackExchange Authenticator Plugin
 .. image:: https://travis-ci.org/curityio/stackexchange-authenticator.svg?branch=dev
     :target: https://travis-ci.org/curityio/stackexchange-authenticator
 
-This project provides an opens source StackExchange Authenticator plug-in for the Curity Identity Server. This allows an administrator to add functionality to Curity which will then enable end users to login using their StackOverflow, SuperUser, ServerFault or other StackExchange credentials. The app that integrates with Curity may also be configured to receive the StackExchange access token, allowing it to manage resources StackExchange.
+This project provides an opens source StackExchange Authenticator plug-in for the Curity Identity Server. This allows an administrator to add functionality to Curity which will then enable end users to login using their StackOverflow, SuperUser, ServerFault or other StackExchange credentials. The app that integrates with Curity may also be configured to receive the StackExchange access token, allowing it to manage StackExchange resources.
 
 System Requirements
 ~~~~~~~~~~~~~~~~~~~
@@ -25,7 +25,7 @@ The source is very easy to compile. To do so from a shell, issue this command: `
 Installation
 ~~~~~~~~~~~~
 
-To install this plug-in, either download a binary version available from the `releases section of this project's GitHub repository <https://github.com/curityio/stackexchange-authenticator/releases>`_ or compile it from source (as described above). If you compiled the plug-in from source, the package will be placed in the ``target`` subdirectory. The resulting JAR file or the one downloaded from GitHub needs to placed in the directory ``${IDSVR_HOME}/usr/share/lib/stackexchange``. (The name of the last directory, ``stackexchange``, which is the plug-in group, is arbitrary and can be anything.) After doing so, the plug-in will become available as soon as the node is restarted.
+To install this plug-in, either download a binary version available from the `releases section of this project's GitHub repository <https://github.com/curityio/stackexchange-authenticator/releases>`_ or compile it from source (as described above). If you compiled the plug-in from source, the package will be placed in the ``target`` subdirectory. The resulting JAR file or the one downloaded from GitHub needs to placed in the directory ``${IDSVR_HOME}/usr/share/plugins/stackexchange``. (The name of the last directory, ``stackexchange``, which is the plug-in group, is arbitrary and can be anything.) After doing so, the plug-in will become available as soon as the node is restarted.
 
 .. note::
 
