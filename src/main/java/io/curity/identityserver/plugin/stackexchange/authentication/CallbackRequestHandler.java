@@ -31,11 +31,15 @@ import se.curity.identityserver.sdk.authentication.AuthenticatorRequestHandler;
 import se.curity.identityserver.sdk.errors.ErrorCode;
 import se.curity.identityserver.sdk.http.HttpResponse;
 import se.curity.identityserver.sdk.service.ExceptionFactory;
+import se.curity.identityserver.sdk.service.HttpClient;
 import se.curity.identityserver.sdk.service.Json;
+import se.curity.identityserver.sdk.service.WebServiceClient;
+import se.curity.identityserver.sdk.service.WebServiceClientFactory;
 import se.curity.identityserver.sdk.service.authentication.AuthenticatorInformationProvider;
 import se.curity.identityserver.sdk.web.Request;
 import se.curity.identityserver.sdk.web.Response;
 
+import java.net.URI;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -57,15 +61,18 @@ public class CallbackRequestHandler
     private final StackExchangeAuthenticatorPluginConfig _config;
     private final AuthenticatorInformationProvider _authenticatorInformationProvider;
     private final Json _json;
+    private final WebServiceClientFactory _webServiceClientFactory;
 
     public CallbackRequestHandler(ExceptionFactory exceptionFactory,
                                   AuthenticatorInformationProvider authenticatorInformationProvider,
                                   Json json,
+                                  WebServiceClientFactory webServiceClientFactory,
                                   StackExchangeAuthenticatorPluginConfig config)
     {
         _exceptionFactory = exceptionFactory;
         _config = config;
         _json = json;
+        _webServiceClientFactory = webServiceClientFactory;
         _authenticatorInformationProvider = authenticatorInformationProvider;
     }
 
@@ -133,9 +140,7 @@ public class CallbackRequestHandler
             throw _exceptionFactory.internalServerException(ErrorCode.EXTERNAL_SERVICE_ERROR);
         }
 
-        HttpResponse userInfoResponse = _config.getWebServiceClient()
-                .withHost("api.stackexchange.com")
-                .withPath("/2.2/me")
+        HttpResponse userInfoResponse = getWebServiceClient()
                 .withQueries(createQueryParameters(accessToken.toString(), _config.getAppKey(), _config.getSite()))
                 .request()
                 .get()
@@ -177,6 +182,22 @@ public class CallbackRequestHandler
         return result;
     }
 
+    private WebServiceClient getWebServiceClient()
+    {
+        Optional<HttpClient> httpClient = _config.getHttpClient();
+
+        if (httpClient.isPresent())
+        {
+            return _webServiceClientFactory.create(httpClient.get())
+                    .withHost("api.stackexchange.com")
+                    .withPath("/2.2/me");
+        }
+        else
+        {
+            return _webServiceClientFactory.create(URI.create("https://api.stackexchange.com/2.2/me"));
+        }
+    }
+
     private Map<String, Collection<String>> createQueryParameters(String accessToken, String appKey,
                                                                   StackExchangeAuthenticatorPluginConfig.Site site)
     {
@@ -191,9 +212,8 @@ public class CallbackRequestHandler
 
     private Map<String, Object> redeemCodeForTokens(CallbackGetRequestModel requestModel)
     {
-        HttpResponse tokenResponse = _config.getWebServiceClient()
-                .withHost("stackexchange.com")
-                .withPath("/oauth/access_token/json")
+        URI uri = URI.create("https://stackexchange.com/oauth/access_token/json");
+        HttpResponse tokenResponse = _webServiceClientFactory.create(uri)
                 .request()
                 .contentType("application/x-www-form-urlencoded")
                 .body(createFormUrlEncodedBodyProcessor(createPostData(_config.getClientId(),

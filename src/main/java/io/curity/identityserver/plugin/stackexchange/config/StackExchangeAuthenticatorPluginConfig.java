@@ -20,8 +20,10 @@ import se.curity.identityserver.sdk.config.Configuration;
 import se.curity.identityserver.sdk.config.annotation.DefaultEnum;
 import se.curity.identityserver.sdk.config.annotation.DefaultString;
 import se.curity.identityserver.sdk.config.annotation.Description;
+import se.curity.identityserver.sdk.service.HttpClient;
 import se.curity.identityserver.sdk.service.SessionManager;
-import se.curity.identityserver.sdk.service.WebServiceClient;
+
+import java.util.Optional;
 
 @SuppressWarnings("InterfaceNeverImplemented")
 public interface StackExchangeAuthenticatorPluginConfig extends Configuration {
@@ -34,11 +36,11 @@ public interface StackExchangeAuthenticatorPluginConfig extends Configuration {
     @Description("StackExchange App Key")
     String getAppKey();
 
-    WebServiceClient getWebServiceClient();
-
     @Description("A space-separated list of scopes to request from StackExchange")
     @DefaultString("")
     String getScope();
+
+    Optional<HttpClient> getHttpClient();
 
     SessionManager getSessionManager();
 
