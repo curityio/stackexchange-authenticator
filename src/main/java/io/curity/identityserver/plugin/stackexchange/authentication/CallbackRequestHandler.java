@@ -220,7 +220,7 @@ public class CallbackRequestHandler
 
         if (statusCode != 200)
         {
-            if (_logger.isDebugEnabled())
+            if (_logger.isInfoEnabled())
             {
                 _logger.info("Got error response from token endpoint: error = {}, {}", statusCode,
                         tokenResponse.body(HttpResponse.asString()));
