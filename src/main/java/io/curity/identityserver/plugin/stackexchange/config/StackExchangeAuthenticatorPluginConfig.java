@@ -41,10 +41,6 @@ public interface StackExchangeAuthenticatorPluginConfig extends Configuration {
     @Description("StackExchange App Key")
     String getAppKey();
 
-    @Description("A space-separated list of scopes to request from StackExchange")
-    @DefaultString("")
-    String getScope();
-
     @Description("The HTTP client with any proxy and TLS settings that will be used to connect to stackexchange.com and api.stackexchange.com")
     Optional<HttpClient> getHttpClient();
 
