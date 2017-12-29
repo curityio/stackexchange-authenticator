@@ -1,6 +1,9 @@
 StackExchange Authenticator Plugin
 ==================================
 
+.. image:: https://travis-ci.org/curityio/stackexchange-authenticator.svg?branch=dev
+    :target: https://travis-ci.org/curityio/stackexchange-authenticator
+
 StackExchange Oauth Authenticator plugin for the Curity Identity Server.
 
 Create `StackExchange app`_
