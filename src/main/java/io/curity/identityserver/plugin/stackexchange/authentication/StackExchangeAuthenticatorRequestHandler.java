@@ -53,14 +53,11 @@ public class StackExchangeAuthenticatorRequestHandler implements AuthenticatorRe
     private final ExceptionFactory _exceptionFactory;
     private final AuthenticatorInformationProvider _authenticatorInformationProvider;
 
-    public StackExchangeAuthenticatorRequestHandler(StackExchangeAuthenticatorPluginConfig config,
-                                                    ExceptionFactory exceptionFactory,
-                                                    Json json,
-                                                    AuthenticatorInformationProvider authenticatorInformationProvider)
+    public StackExchangeAuthenticatorRequestHandler(StackExchangeAuthenticatorPluginConfig config)
     {
         _config = config;
-        _exceptionFactory = exceptionFactory;
-        _authenticatorInformationProvider = authenticatorInformationProvider;
+        _exceptionFactory = config.getExceptionFactory();
+        _authenticatorInformationProvider = config.getAuthenticatorInformationProvider();
     }
 
     @Override

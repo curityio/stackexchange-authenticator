@@ -63,17 +63,13 @@ public class CallbackRequestHandler
     private final Json _json;
     private final WebServiceClientFactory _webServiceClientFactory;
 
-    public CallbackRequestHandler(ExceptionFactory exceptionFactory,
-                                  AuthenticatorInformationProvider authenticatorInformationProvider,
-                                  Json json,
-                                  WebServiceClientFactory webServiceClientFactory,
-                                  StackExchangeAuthenticatorPluginConfig config)
+    public CallbackRequestHandler(StackExchangeAuthenticatorPluginConfig config)
     {
-        _exceptionFactory = exceptionFactory;
+        _exceptionFactory = config.getExceptionFactory();
         _config = config;
-        _json = json;
-        _webServiceClientFactory = webServiceClientFactory;
-        _authenticatorInformationProvider = authenticatorInformationProvider;
+        _json = config.getJson();
+        _webServiceClientFactory = config.getWebServiceClientFactory();
+        _authenticatorInformationProvider = config.getAuthenticatorInformationProvider();
     }
 
     @Override
