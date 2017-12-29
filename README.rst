@@ -75,7 +75,7 @@ The easiest way to configure a new StackExchange authenticator is using the Curi
 
 7. Back in the StackExchange authenticator instance that you started to define, select the new HTTP client from the dropdown if you created one; otherwise, leave this setting blank.
 8. In the ``Client ID`` textfield, enter the client ID from the StackExchange app configuration. This is the auto-generated ID that was shown after register it. Also enter the matching ``Client Secret`` and ``App Key``.
-11. If wish to request certain scopes from StackExchange during user login, toggle on the desired scopes (e.g., ``Write Access``).
+9. If wish to request certain scopes from StackExchange during user login, toggle on the desired scopes (e.g., ``Write Access``).
 
 Once all of these changes are made, they will be staged, but not committed (i.e., not running). To make them active, click the ``Commit`` menu option in the ``Changes`` menu. Optionally enter a comment in the ``Deploy Changes`` dialogue and click ``OK``.
 
