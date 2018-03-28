@@ -64,7 +64,7 @@ The easiest way to configure a new StackExchange authenticator is using the Curi
 
         .. note::
 
-            The StackExchange-specific configuration is generated dynamically based on the `configuration model defined in the Java interface <https://github.com/curityio/github-authenticator/blob/master/src/main/java/io/curity/identityserver/plugin/github/descriptor/GithubAuthenticatorPluginDescriptor.java>`_.
+            The StackExchange-specific configuration is generated dynamically based on the `configuration model defined in the Java interface <https://github.com/curityio/stackexchange-authenticator/blob/master/src/main/java/io/curity/identityserver/plugin/stackexchange/descriptor/StackExchangeAuthenticatorPluginDescriptor.java>`_.
 
 6. Certain required and optional configuration settings may be provided. One of these is the ``HTTP Client`` setting. This is the HTTP client that will be used to communicate with the StackExchange OAuth server's token and user info endpoints. This will only be required if the calls to StackExchange are made through a forwarding proxy or there is an benign SSL Man-in-the-Middle that uses some untrusted SSL certificate. To define this, do the following:
 
