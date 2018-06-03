@@ -56,7 +56,7 @@ The easiest way to configure a new StackExchange authenticator is using the Curi
 3. Enter a name (e.g., ``stackexchange1``).
 4. For the type, pick the ``StackExchange`` option:
 
-    .. figure:: docs/images/box-authenticator-type-in-curity.png
+    .. figure:: docs/images/stackexchange-authenticator-type-in-curity.png
         :align: center
         :width: 600px
 
