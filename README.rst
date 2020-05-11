@@ -1,8 +1,12 @@
 StackExchange Authenticator Plugin
 ==================================
-
-.. image:: https://travis-ci.org/curityio/stackexchange-authenticator.svg?branch=master
-    :target: https://travis-ci.org/curityio/stackexchange-authenticator
+   
+.. image:: https://curity.io/assets/images/badges/stackexchange-authenticator-quality.svg
+       :target: https://curity.io/resources/code-examples/status/
+       
+.. image:: https://curity.io/assets/images/badges/stackexchange-authenticator-availability.svg
+       :target: https://curity.io/resources/code-examples/status/
+       
 
 This project provides an opens source StackExchange Authenticator plug-in for the Curity Identity Server. This allows an administrator to add functionality to Curity which will then enable end users to login using their StackOverflow, SuperUser, ServerFault or other StackExchange credentials. The app that integrates with Curity may also be configured to receive the StackExchange access token, allowing it to manage StackExchange resources.
 
