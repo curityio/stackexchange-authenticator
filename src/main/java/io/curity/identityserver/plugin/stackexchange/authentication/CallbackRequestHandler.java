@@ -50,6 +50,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
+import static io.curity.identityserver.plugin.stackexchange.authentication.RedirectUriUtil.createRedirectUri;
 import static se.curity.identityserver.sdk.http.HttpRequest.createFormUrlEncodedBodyProcessor;
 
 public class CallbackRequestHandler
@@ -208,12 +209,14 @@ public class CallbackRequestHandler
 
     private Map<String, Object> redeemCodeForTokens(CallbackGetRequestModel requestModel)
     {
+        var redirectUri = createRedirectUri(_authenticatorInformationProvider, _exceptionFactory);
+
         URI uri = URI.create("https://stackexchange.com/oauth/access_token/json");
         HttpResponse tokenResponse = _webServiceClientFactory.create(uri)
                 .request()
                 .contentType("application/x-www-form-urlencoded")
                 .body(createFormUrlEncodedBodyProcessor(createPostData(_config.getClientId(),
-                        _config.getClientSecret(), requestModel.getCode(), requestModel.getRequestUrl())))
+                        _config.getClientSecret(), requestModel.getCode(), redirectUri)))
                 .post()
                 .response();
         int statusCode = tokenResponse.statusCode();
